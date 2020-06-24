@@ -3,7 +3,7 @@ import time
 
 WaitRefresh = 10
 
-def Login(config, startcomp):
+def Login(config, startcomp=config["tenancy"]):
     identity = oci.identity.IdentityClient(config)
     user = identity.get_user(config["user"]).data
     RootCompartmentID = user.compartment_id
@@ -35,92 +35,3 @@ def SubscribedRegions(config):
         regions.append(detail.region_name)
         
     return regions        
-    
-
-
-def DeleteTagNameSpaces(config, compartments):
-
-    AllItems = []
-    object = oci.identity.IdentityClient(config)
-
-    print ("Getting all Healthchecks PING monitor objects")
-    for Compartment in Compartments:
-        items = oci.pagination.list_call_get_all_results(object.list_tag_namespaces, compartment_id=Compartment.id).data
-        for item in items:
-                AllItems.append(item)
-                print("- {}".format(item.name))
-
-    itemsPresent = True
-
-    while itemsPresent:
-        count = 0
-        for item in AllItems:
-            try:
-                itemstatus = object.get_tag_namespace(tag_namespace_id=item.id).data
-                try:
-                    print ("Deleting: {}".format(itemstatus.display_name))
-                    # Need to retire tag namespace
-
-                except:
-                    print ("error trying to delete: {}".format(itemstatus.display_name))
-                count = count + 1
-            except:
-                print ("Deleted : {}".format(item.display_name))
-        if count > 0 :
-            print ("Waiting for all Objects to be deleted...")
-            time.sleep(WaitRefresh)
-        else:
-            itemsPresent = False
-    print ("All Objects deleted!")
-
-def DeleteCompartments(config, compartments, startcomp):
-
-    object = oci.identity.IdentityClient(config)
-    for Compartment in compartments:
-        if Compartment.id != startcomp:
-            retry = True
-            while retry:
-                retry = False
-                try:
-                    object.delete_compartment(compartment_id=Compartment.id)
-                    print ("Deleted compartment: {}".format(Compartment.name))
-                except Exception as e:
-                    if e.status == 429:
-                        print ("Delaying.. api calls")
-                        time.sleep(10)
-                        retry = True
-
-
-def DeletePolicies(config, compartments):
-
-    AllItems = []
-    object = oci.identity.IdentityClient(config)
-
-    print ("Getting all Policy objects")
-    for Compartment in compartments:
-        items = oci.pagination.list_call_get_all_results(object.list_policies, compartment_id=Compartment.id).data
-        for item in items:
-                AllItems.append(item)
-                print("- {}".format(item.name))
-
-    itemsPresent = True
-
-    while itemsPresent:
-        count = 0
-        for item in AllItems:
-            try:
-                itemstatus = object.get_policy(policy_id=item.id).data
-                try:
-                    print ("Deleting: {}".format(itemstatus.name))
-                    object.delete_policy(policy_id=itemstatus.id)
-                except:
-                    print ("error trying to delete: {}".format(itemstatus.name))
-                count = count + 1
-            except:
-                print ("Deleted : {}".format(item.name))
-        if count > 0 :
-            print ("Waiting for all Objects to be deleted...")
-            time.sleep(WaitRefresh)
-        else:
-            itemsPresent = False
-    print ("All Objects deleted!")

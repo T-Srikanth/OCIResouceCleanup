@@ -3,10 +3,9 @@ import time
 
 WaitRefresh = 10
 
-def Login(config, startcomp=config["tenancy"]):
+def Login(config,startcomp):
     identity = oci.identity.IdentityClient(config)
     user = identity.get_user(config["user"]).data
-    RootCompartmentID = user.compartment_id
     print("Logged in as: {} @ {}".format(user.description, config["region"]))
 
     # Add first level subcompartments
